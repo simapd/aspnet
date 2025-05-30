@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json;
 using Visus.Cuid;
 
 namespace Simapd.Models
@@ -23,7 +22,7 @@ namespace Simapd.Models
     public double Longitude { get; init; }
 
     public RiskArea() {
-        Id = JsonSerializer.Serialize(new Cuid2());
+        Id = new Cuid2().ToString();
     }
   }
 }

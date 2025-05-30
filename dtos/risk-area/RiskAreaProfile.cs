@@ -9,6 +9,7 @@ namespace Simapd.Profiles
     public RiskAreaProfile()
     {
       CreateMap<RiskArea, RiskAreaDto>();
+      CreateMap<RiskAreaRequestDto, RiskArea>();
     }
   }
 }

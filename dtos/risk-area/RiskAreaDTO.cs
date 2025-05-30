@@ -7,4 +7,11 @@ namespace Simapd.Dtos
         public double Latitude { get; init; }
         public double Longitude { get; init; }
     }
+
+    public record RiskAreaRequestDto
+    {
+        public string? Name { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+    }
 }

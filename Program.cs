@@ -36,19 +36,19 @@ app.MapGet("/health", Ok<HealthCheck> () => {
 .WithName("HealthCheck")
 .WithDisplayName("Application Health Check")
 .WithDescription("""
-    Verifica o status de saúde da aplicação e retorna informações básicas de funcionamento.
+Verifica o status de saúde da aplicação e retorna informações básicas de funcionamento.
 
-    CAMPOS DE RETORNO:
-    • Status (string): Status atual da aplicação ("Healthy")
-    • Timestamp (DateTime): Data/hora UTC exata quando a verificação foi realizada
+Campos de retorno:
+- Status (string): Status atual da aplicação ("Healthy")
+- Timestamp (DateTime): Data/hora UTC exata quando a verificação foi realizada
 
-    POSSÍVEIS FALHAS:
-    • 500 Internal Server Error: Falha crítica na aplicação (Inacessivel)
+Possíveis falhas:
+- 500 Internal Server Error: Falha crítica na aplicação (Inacessivel)
 
-    USO RECOMENDADO:
-    Este endpoint deve ser chamado por load balancers, ferramentas de monitoramento (Kubernetes liveness/readiness probes)
-    e sistemas de alertas para verificar se a aplicação está funcionando adequadamente.
-    """)
+Uso recomendado:
+Este endpoint deve ser chamado por load balancers, ferramentas de monitoramento (Kubernetes liveness/readiness probes)
+e sistemas de alertas para verificar se a aplicação está funcionando adequadamente.
+""")
 .WithSummary("Endpoint para verificação de saúde da aplicação")
 .WithTags("Health", "Monitoring", "System")
 .ProducesProblem(StatusCodes.Status500InternalServerError)
@@ -57,36 +57,49 @@ app.MapGet("/health", Ok<HealthCheck> () => {
 
 var riskAreaGroup = app.MapGroup("/risk-areas").WithTags("Risk Areas").WithDescription("Endpoint related to Risk Areas control");
 
-riskAreaGroup.MapGet("/", async Task<Results<Ok<PagedResponseDto<RiskAreaDto>>, BadRequest>> (
+riskAreaGroup.MapGet("/", async Task<Results<Ok<PagedResponseDto<RiskAreaDto>>, BadRequest<ErrorResponse>>> (
     IRiskAreaRepository riskAreaRepository,
     IMapper mapper,
     int pageNumber = 1,
     int pageSize = 10
 ) => {
     if (pageNumber <= 0) {
-        return TypedResults.BadRequest(
-            // TypedResults.Problem(
-            //     title: "Bad Request",
-            //     detail: $"{nameof(pageNumber)} must be greater than 0",
-            //     statusCode: StatusCodes.Status400BadRequest
-            // )
-        );
+        return TypedResults.BadRequest(new ErrorResponse(400, "O número da página deve ser maior que zero."));
     }
 
     if (pageSize <= 0) {
-        return TypedResults.BadRequest(
-            // TypedResults.Problem(
-            //     title: "Bad Request",
-            //     detail: $"{nameof(pageSize)} must be greater than 0",
-            //     statusCode: StatusCodes.Status400BadRequest
-            // )
-        );
+        return TypedResults.BadRequest(new ErrorResponse(400, "O tamanho da página deve ser maior que zero."));
     }
 
     var riskAreas = await riskAreaRepository.ListPagedAsync(pageNumber, pageSize);
 
     return TypedResults.Ok(mapper.Map<PagedResponseDto<RiskAreaDto>>(riskAreas));
 })
-.WithSummary("Returns a paginated result of all risk areas");
+.WithSummary("Lista paginada das áreas de risco registradas.")
+.WithDescription("""
+Retorna uma lista paginada das áreas de risco disponíveis no sistema.
+
+Parâmetros:
+- pageNumber (opcional): Número da página a ser retornada. Deve ser maior que zero. Padrão: 1
+- pageSize (opcional): Quantidade de itens por página. Deve ser maior que zero. Padrão: 10
+
+Respostas:
+- 200 OK: Retorna uma estrutura paginada (`PagedResponseDto<RiskAreaDto>`) contendo os dados das áreas de risco.
+- 400 Bad Request: Retornado quando `pageNumber` ou `pageSize` são menores ou iguais a zero.
+""");
+
+riskAreaGroup.MapPost("/", async Task<Results<Ok<RiskAreaDto>, BadRequest<ErrorResponse>>> (
+    IRiskAreaRepository riskAreaRepository,
+    IMapper mapper,
+    RiskAreaRequestDto newRiskArea
+) => {
+    var riskArea = await riskAreaRepository.CreateAsync(mapper.Map<RiskArea>(newRiskArea));
+
+    return TypedResults.Ok(mapper.Map<RiskAreaDto>(riskArea));
+})
+.WithSummary("Registra uma nova área de risco.")
+.WithDescription("""
+Registra uma nova área de risco no sistema.
+""");
 
 app.Run();

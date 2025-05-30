@@ -20,6 +20,11 @@ namespace Simapd.Repositories
             return riskArea;
         }
 
+        public async Task<RiskArea?> FindAsync(string id)
+        {
+            return await _db.RiskArea.FirstOrDefaultAsync(r => r.Id == id);
+        }
+
         public async Task<PagedResponse<RiskArea>> ListPagedAsync(int pageNumber, int pageSize)
         {
           var totalRecords = await _db.RiskArea.AsNoTracking().CountAsync();

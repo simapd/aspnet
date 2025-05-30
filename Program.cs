@@ -6,6 +6,8 @@ using Simapd.Dtos;
 using Simapd.Repositories;
 using AutoMapper;
 using Simapd.Profiles;
+using Visus.Cuid;
+using System.Text.RegularExpressions;
 
 DotNetEnv.Env.Load();
 
@@ -57,6 +59,28 @@ e sistemas de alertas para verificar se a aplicação está funcionando adequada
 
 var riskAreaGroup = app.MapGroup("/risk-areas").WithTags("Risk Areas").WithDescription("Endpoint related to Risk Areas control");
 
+riskAreaGroup.MapGet("/{id}", async Task<Results<Ok<RiskAreaDto>, NotFound<ErrorResponse>, BadRequest<ErrorResponse>>> (
+    IRiskAreaRepository riskAreaRepository,
+    IMapper mapper,
+    string id
+) => {
+    if (string.IsNullOrWhiteSpace(id) || !Regex.IsMatch(id, "^[a-z0-9]{20,32}$")) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "O id nao segue um formato de CUID2 valido."));
+    }
+
+    var riskArea = await riskAreaRepository.FindAsync(id);
+
+    if (riskArea is null) {
+        return TypedResults.NotFound(new ErrorResponse(404, $"Área de risco com id {id} nao encontrada"));
+    }
+
+    return TypedResults.Ok(mapper.Map<RiskAreaDto>(riskArea));
+})
+.WithSummary("Retorna a área de risco especificada.")
+.WithDescription("""
+Retorna a área de risco com o id enviado.
+""");
+
 riskAreaGroup.MapGet("/", async Task<Results<Ok<PagedResponseDto<RiskAreaDto>>, BadRequest<ErrorResponse>>> (
     IRiskAreaRepository riskAreaRepository,
     IMapper mapper,
@@ -88,14 +112,14 @@ Respostas:
 - 400 Bad Request: Retornado quando `pageNumber` ou `pageSize` são menores ou iguais a zero.
 """);
 
-riskAreaGroup.MapPost("/", async Task<Results<Ok<RiskAreaDto>, BadRequest<ErrorResponse>>> (
+riskAreaGroup.MapPost("/", async Task<Results<Created<RiskAreaDto>, BadRequest<ErrorResponse>>> (
     IRiskAreaRepository riskAreaRepository,
     IMapper mapper,
     RiskAreaRequestDto newRiskArea
 ) => {
     var riskArea = await riskAreaRepository.CreateAsync(mapper.Map<RiskArea>(newRiskArea));
 
-    return TypedResults.Ok(mapper.Map<RiskAreaDto>(riskArea));
+    return TypedResults.Created($"/risk-area/${riskArea.Id}",mapper.Map<RiskAreaDto>(riskArea));
 })
 .WithSummary("Registra uma nova área de risco.")
 .WithDescription("""

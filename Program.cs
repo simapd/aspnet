@@ -219,4 +219,35 @@ Respostas:
 - 404 Not Found: Retornado quando o id de área passado não corresponde a uma área cadastrada no sistema.
 """);
 
+sensorsGroup.MapGet("/{id}", async Task<Results<Ok<SensorDto>, NotFound<ErrorResponse>, BadRequest<ErrorResponse>>> (
+    IRiskAreaRepository riskAreaRepository,
+    ISensorRepository sensorRepository,
+    IMapper mapper,
+    string areaId,
+    string id
+) => {
+    if (string.IsNullOrWhiteSpace(areaId) || !Regex.IsMatch(areaId, "^[a-z0-9]{20,32}$")) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "O areaId nao segue um formato de CUID2 valido."));
+    }
+
+    if (string.IsNullOrWhiteSpace(id) || !Regex.IsMatch(id, "^[a-z0-9]{20,32}$")) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "O id nao segue um formato de CUID2 valido."));
+    }
+
+    var riskArea = await riskAreaRepository.FindAsync(areaId);
+
+    if (riskArea is null) {
+        return TypedResults.NotFound(new ErrorResponse(404, $"Área de risco com id {areaId} nao encontrada"));
+    }
+
+    var sensor = await sensorRepository.FindAsync(id);
+
+    return TypedResults.Ok(mapper.Map<SensorDto>(sensor));
+})
+.WithSummary("Retorna o sensor especificado.")
+.WithDescription("""
+Retorna o sensor de uma área de risco com os ids especificados.
+""");
+
+
 app.Run();

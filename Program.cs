@@ -19,8 +19,10 @@ builder.Services.AddDbContext<SimapdDb>(opt
     => opt.UseNpgsql(dbConnectionString));
 
 builder.Services.AddAutoMapper(typeof(RiskAreaProfile));
+builder.Services.AddAutoMapper(typeof(SensorProfile));
 
 builder.Services.AddScoped<IRiskAreaRepository, RiskAreaRepository>();
+builder.Services.AddScoped<ISensorRepository, SensorRepository>();
 
 var app = builder.Build();
 
@@ -173,6 +175,48 @@ riskAreaGroup.MapDelete("/{id}", async Task<Results<NoContent, NotFound<ErrorRes
 .WithSummary("Deleta a área de risco especificada.")
 .WithDescription("""
 Deleta a área de risco com o id enviado.
+""");
+
+var sensorsGroup = app.MapGroup("/risk-areas/{areaId}/sensors").WithTags("Sensors").WithDescription("Endpoint related to Sensors control");
+
+sensorsGroup.MapGet("/", async Task<Results<Ok<PagedResponseDto<SensorDto>>, NotFound<ErrorResponse>, BadRequest<ErrorResponse>>> (
+    IRiskAreaRepository riskAreaRepository,
+    ISensorRepository sensorRepository,
+    IMapper mapper,
+    string areaId,
+    int pageNumber = 1,
+    int pageSize = 10
+) => {
+    if (pageNumber <= 0) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "O número da página deve ser maior que zero."));
+    }
+
+    if (pageSize <= 0) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "O tamanho da página deve ser maior que zero."));
+    }
+
+    var area = await riskAreaRepository.FindAsync(areaId);
+
+    if (area is null) {
+        return TypedResults.NotFound(new ErrorResponse(404, $"Área de risco com id {areaId} nao encontrada"));
+    }
+
+    var sensors = await sensorRepository.ListPagedAsync(areaId, pageNumber, pageSize);
+
+    return TypedResults.Ok(mapper.Map<PagedResponseDto<SensorDto>>(sensors));
+})
+.WithSummary("Lista paginada dos sensores registrados na área de risco especificada.")
+.WithDescription("""
+Retorna uma lista paginada dos sensores de uma área de risco disponíveis no sistema.
+
+Parâmetros:
+- pageNumber (opcional): Número da página a ser retornada. Deve ser maior que zero. Padrão: 1
+- pageSize (opcional): Quantidade de itens por página. Deve ser maior que zero. Padrão: 10
+
+Respostas:
+- 200 OK: Retorna uma estrutura paginada (`PagedResponseDto<RiskAreaDto>`) contendo os dados das áreas de risco.
+- 400 Bad Request: Retornado quando `pageNumber` ou `pageSize` são menores ou iguais a zero.
+- 404 Not Found: Retornado quando o id de área passado não corresponde a uma área cadastrada no sistema.
 """);
 
 app.Run();

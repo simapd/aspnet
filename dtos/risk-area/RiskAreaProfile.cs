@@ -9,7 +9,8 @@ namespace Simapd.Profiles
     public RiskAreaProfile()
     {
       CreateMap<RiskArea, RiskAreaDto>();
-      CreateMap<RiskAreaRequestDto, RiskArea>();
+      CreateMap<RiskAreaRequestDto, RiskArea>()
+       .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember is not null));
     }
   }
 }

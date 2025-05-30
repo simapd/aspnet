@@ -126,4 +126,30 @@ riskAreaGroup.MapPost("/", async Task<Results<Created<RiskAreaDto>, BadRequest<E
 Registra uma nova área de risco no sistema.
 """);
 
+riskAreaGroup.MapPut("/{id}", async Task<Results<Ok<RiskAreaDto>, NotFound<ErrorResponse>, BadRequest<ErrorResponse>>> (
+    IRiskAreaRepository riskAreaRepository,
+    IMapper mapper,
+    string id,
+    RiskAreaRequestDto updatedRiskArea
+) => {
+    if (string.IsNullOrWhiteSpace(id) || !Regex.IsMatch(id, "^[a-z0-9]{20,32}$")) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "O id nao segue um formato de CUID2 valido."));
+    }
+
+    var riskArea = await riskAreaRepository.FindAsync(id);
+
+    if (riskArea is null) {
+        return TypedResults.NotFound(new ErrorResponse(404, $"Área de risco com id {id} nao encontrada"));
+    }
+
+    mapper.Map(updatedRiskArea, riskArea);
+    await riskAreaRepository.UpdateAsync();
+
+    return TypedResults.Ok(mapper.Map<RiskAreaDto>(riskArea));
+})
+.WithSummary("Atualiza a área de risco especificada.")
+.WithDescription("""
+Atualiza a área de risco com o id enviado.
+""");
+
 app.Run();

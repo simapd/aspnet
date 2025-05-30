@@ -6,7 +6,6 @@ using Simapd.Dtos;
 using Simapd.Repositories;
 using AutoMapper;
 using Simapd.Profiles;
-using Visus.Cuid;
 using System.Text.RegularExpressions;
 
 DotNetEnv.Env.Load();
@@ -150,6 +149,30 @@ riskAreaGroup.MapPut("/{id}", async Task<Results<Ok<RiskAreaDto>, NotFound<Error
 .WithSummary("Atualiza a área de risco especificada.")
 .WithDescription("""
 Atualiza a área de risco com o id enviado.
+""");
+
+riskAreaGroup.MapDelete("/{id}", async Task<Results<NoContent, NotFound<ErrorResponse>, BadRequest<ErrorResponse>>> (
+    IRiskAreaRepository riskAreaRepository,
+    IMapper mapper,
+    string id
+) => {
+    if (string.IsNullOrWhiteSpace(id) || !Regex.IsMatch(id, "^[a-z0-9]{20,32}$")) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "O id nao segue um formato de CUID2 valido."));
+    }
+
+    var riskArea = await riskAreaRepository.FindAsync(id);
+
+    if (riskArea is null) {
+        return TypedResults.NotFound(new ErrorResponse(404, $"Área de risco com id {id} nao encontrada"));
+    }
+
+    await riskAreaRepository.DeleteAsync(riskArea);
+
+    return TypedResults.NoContent();
+})
+.WithSummary("Deleta a área de risco especificada.")
+.WithDescription("""
+Deleta a área de risco com o id enviado.
 """);
 
 app.Run();

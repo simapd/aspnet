@@ -44,5 +44,11 @@ namespace Simapd.Repositories
         {
             await _db.SaveChangesAsync();
         }
+
+        public async Task DeleteAsync(RiskArea riskArea)
+        {
+            _db.RiskArea.Remove(riskArea);
+            await _db.SaveChangesAsync();
+        }
     }
 }

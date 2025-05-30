@@ -8,5 +8,6 @@ namespace Simapd.Repositories
     Task<PagedResponse<RiskArea>> ListPagedAsync(int pageNumber, int pageSize);
     Task<RiskArea> CreateAsync(RiskArea riskArea);
     Task UpdateAsync();
+    Task DeleteAsync(RiskArea riskArea);
   }
 }

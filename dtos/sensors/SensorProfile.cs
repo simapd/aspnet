@@ -9,8 +9,8 @@ namespace Simapd.Profiles
     public SensorProfile()
     {
       CreateMap<Sensor, SensorDto>();
-      // CreateMap<RiskAreaRequestDto, RiskArea>()
-      //  .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember is not null));
+      CreateMap<SensorRequestDto, Sensor>()
+       .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember is not null));
     }
   }
 }

@@ -16,13 +16,13 @@ namespace Simapd.Models
     public string? Description { get; set; }
 
     [Column("installed_at")]
-    public DateTime InstalledAt { get; init; }
+    public DateTime InstalledAt { get; set; }
 
     [Column("maintained_at")]
     public DateTime? MaintainedAt { get; init; }
 
     [Column("area_id")]
-    public required string AreaId { get; init; }
+    public required string AreaId { get; set; }
     public required RiskArea Area { get; init; }
 
     public Sensor() {

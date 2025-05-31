@@ -8,4 +8,11 @@ namespace Simapd.Dtos
         public DateTime? MaintainedAt { get; init; }
         public required RiskAreaDto Area { get; set; }
     }
+
+    public record SensorRequestDto
+    {
+        public string? Description { get; set; }
+        public DateTime? InstalledAt { get; set; }
+        public DateTime? MaintainedAt { get; set; }
+    }
 }

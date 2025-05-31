@@ -282,5 +282,47 @@ sensorsGroup.MapPost("/", async Task<Results<Created<SensorDto>, NotFound<ErrorR
 Registra um novo sensor no sistema na área de risco existente.
 """);
 
+sensorsGroup.MapPut("/{id}", async Task<Results<Ok<SensorDto>, NotFound<ErrorResponse>, BadRequest<ErrorResponse>>> (
+    IRiskAreaRepository riskAreaRepository,
+    ISensorRepository sensorRepository,
+    IMapper mapper,
+    string areaId,
+    string id,
+    SensorRequestDto updatedSensor
+) => {
+    if (string.IsNullOrWhiteSpace(areaId) || !Regex.IsMatch(areaId, "^[a-z0-9]{20,32}$")) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "O areaId nao segue um formato de CUID2 valido."));
+    }
+
+    if (string.IsNullOrWhiteSpace(id) || !Regex.IsMatch(id, "^[a-z0-9]{20,32}$")) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "O id nao segue um formato de CUID2 valido."));
+    }
+
+    var riskArea = await riskAreaRepository.FindAsync(areaId);
+
+    if (riskArea is null) {
+        return TypedResults.NotFound(new ErrorResponse(404, $"Área de risco com id {areaId} nao encontrada"));
+    }
+
+    var sensor = await sensorRepository.FindAsync(id);
+
+    if (sensor is null) {
+        return TypedResults.NotFound(new ErrorResponse(404, $"Sensor com id {id} nao encontrado"));
+    }
+
+    if (updatedSensor.InstalledAt is null) {
+        updatedSensor.InstalledAt = sensor.InstalledAt;
+    }
+
+    mapper.Map(updatedSensor, sensor);
+    await sensorRepository.UpdateAsync();
+
+    return TypedResults.Ok(mapper.Map<SensorDto>(sensor));
+})
+.WithSummary("Autaliza um sensor na área de risco especificada.")
+.WithDescription("""
+Atualiza um sensor no sistema na área de risco existente.
+""");
+
 
 app.Run();

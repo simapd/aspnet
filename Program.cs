@@ -7,6 +7,8 @@ using Simapd.Repositories;
 using AutoMapper;
 using Simapd.Profiles;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http.Json;
+using System.Text.Json.Serialization;
 
 DotNetEnv.Env.Load();
 
@@ -20,9 +22,16 @@ builder.Services.AddDbContext<SimapdDb>(opt
 
 builder.Services.AddAutoMapper(typeof(RiskAreaProfile));
 builder.Services.AddAutoMapper(typeof(SensorProfile));
+builder.Services.AddAutoMapper(typeof(AlertProfile));
 
 builder.Services.AddScoped<IRiskAreaRepository, RiskAreaRepository>();
 builder.Services.AddScoped<ISensorRepository, SensorRepository>();
+builder.Services.AddScoped<IAlertRepository, AlertRepository>();
+
+builder.Services.Configure<JsonOptions>(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
 var app = builder.Build();
 
@@ -120,7 +129,7 @@ riskAreaGroup.MapPost("/", async Task<Results<Created<RiskAreaDto>, BadRequest<E
 ) => {
     var riskArea = await riskAreaRepository.CreateAsync(mapper.Map<RiskArea>(newRiskArea));
 
-    return TypedResults.Created($"/risk-area/${riskArea.Id}",mapper.Map<RiskAreaDto>(riskArea));
+    return TypedResults.Created($"/risk-area/{riskArea.Id}",mapper.Map<RiskAreaDto>(riskArea));
 })
 .WithSummary("Registra uma nova área de risco.")
 .WithDescription("""
@@ -275,7 +284,7 @@ sensorsGroup.MapPost("/", async Task<Results<Created<SensorDto>, NotFound<ErrorR
 
     var sensor = await sensorRepository.CreateAsync(newSensorParse);
 
-    return TypedResults.Created($"/risk-area/${sensor.Area.Id}/sensors/${sensor.Id}",mapper.Map<SensorDto>(sensor));
+    return TypedResults.Created($"/risk-area/{sensor.Area.Id}/sensors/{sensor.Id}",mapper.Map<SensorDto>(sensor));
 })
 .WithSummary("Registra um novo sensor na área de risco especificada.")
 .WithDescription("""
@@ -358,6 +367,30 @@ sensorsGroup.MapDelete("/{id}", async Task<Results<NoContent, NotFound<ErrorResp
 .WithSummary("Deleta um sensor na área de risco especificada.")
 .WithDescription("""
 Deleta um sensor no sistema na área de risco existente.
+""");
+
+var alertsGroup = app.MapGroup("/risk-areas/{areaId}/alerts").WithTags("Alerts").WithDescription("Endpoint related to Alerts control");
+
+alertsGroup.MapGet("/{id}", async Task<Results<Ok<AlertDto>, NotFound<ErrorResponse>, BadRequest<ErrorResponse>>> (
+    IAlertRepository alertRepository,
+    IMapper mapper,
+    string id
+) => {
+    if (string.IsNullOrWhiteSpace(id) || !Regex.IsMatch(id, "^[a-z0-9]{20,32}$")) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "O id nao segue um formato de CUID2 valido."));
+    }
+
+    var alert = await alertRepository.FindAsync(id);
+
+    if (alert is null) {
+        return TypedResults.NotFound(new ErrorResponse(404, $"Alerta com id {id} nao encontrada"));
+    }
+
+    return TypedResults.Ok(mapper.Map<AlertDto>(alert));
+})
+.WithSummary("Retorna o alerta especificado.")
+.WithDescription("""
+Retorna o alerta com o id enviado.
 """);
 
 

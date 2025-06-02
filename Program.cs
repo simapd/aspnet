@@ -129,7 +129,7 @@ riskAreaGroup.MapPost("/", async Task<Results<Created<RiskAreaDto>, BadRequest<E
 ) => {
     var riskArea = await riskAreaRepository.CreateAsync(mapper.Map<RiskArea>(newRiskArea));
 
-    return TypedResults.Created($"/risk-area/{riskArea.Id}",mapper.Map<RiskAreaDto>(riskArea));
+    return TypedResults.Created($"/risk-areas/{riskArea.Id}",mapper.Map<RiskAreaDto>(riskArea));
 })
 .WithSummary("Registra uma nova área de risco.")
 .WithDescription("""
@@ -284,7 +284,7 @@ sensorsGroup.MapPost("/", async Task<Results<Created<SensorDto>, NotFound<ErrorR
 
     var sensor = await sensorRepository.CreateAsync(newSensorParse);
 
-    return TypedResults.Created($"/risk-area/{sensor.Area.Id}/sensors/{sensor.Id}",mapper.Map<SensorDto>(sensor));
+    return TypedResults.Created($"/risk-areas/{sensor.Area.Id}/sensors/{sensor.Id}",mapper.Map<SensorDto>(sensor));
 })
 .WithSummary("Registra um novo sensor na área de risco especificada.")
 .WithDescription("""
@@ -443,6 +443,39 @@ Respostas:
 - 200 OK: Retorna uma estrutura paginada (`PagedResponseDto<RiskAreaDto>`) contendo os dados das áreas de risco.
 - 400 Bad Request: Retornado quando `pageNumber` ou `pageSize` são menores ou iguais a zero.
 - 404 Not Found: Retornado quando o id de área passado não corresponde a uma área cadastrada no sistema.
+""");
+
+alertsGroup.MapPost("/", async Task<Results<Created<AlertDto>, NotFound<ErrorResponse>, BadRequest<ErrorResponse>>> (
+    IRiskAreaRepository riskAreaRepository,
+    IAlertRepository alertRepository,
+    IMapper mapper,
+    string areaId,
+    AlertRequestDto newAlert
+) => {
+    if (string.IsNullOrWhiteSpace(areaId) || !Regex.IsMatch(areaId, "^[a-z0-9]{20,32}$")) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "O areaId nao segue um formato de CUID2 valido."));
+    }
+
+    var riskArea = await riskAreaRepository.FindAsync(areaId);
+
+    if (riskArea is null) {
+        return TypedResults.NotFound(new ErrorResponse(404, $"Área de risco com id {areaId} nao encontrada"));
+    }
+
+    var newAlertParse = mapper.Map<Alert>(newAlert);
+    newAlertParse.AreaId = areaId;
+
+    if (newAlert.EmmitedAt is null) {
+        newAlertParse.EmmitedAt = DateTime.UtcNow;
+    }
+
+    var alert = await alertRepository.CreateAsync(newAlertParse);
+
+    return TypedResults.Created($"/risk-areas/{alert.Area.Id}/alerts/{alert.Id}",mapper.Map<AlertDto>(alert));
+})
+.WithSummary("Registra um novo alerta na área de risco especificada.")
+.WithDescription("""
+Registra um novo alerta no sistema na área de risco existente.
 """);
 
 

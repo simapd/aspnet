@@ -427,9 +427,9 @@ alertsGroup.MapGet("/", async Task<Results<Ok<PagedResponseDto<AlertDto>>, NotFo
         return TypedResults.NotFound(new ErrorResponse(404, $"Área de risco com id {areaId} nao encontrada"));
     }
 
-    var alerts = await alertRepository.ListPagedAsync(areaId, pageNumber, pageSize);
+    var sensors = await sensorRepository.ListPagedAsync(areaId, pageNumber, pageSize);
 
-    return TypedResults.Ok(mapper.Map<PagedResponseDto<AlertDto>>(alerts));
+    return TypedResults.Ok(mapper.Map<PagedResponseDto<SensorDto>>(sensors));
 })
 .WithSummary("Lista paginada dos sensores registrados na área de risco especificada.")
 .WithDescription("""

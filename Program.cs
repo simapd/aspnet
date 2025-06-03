@@ -528,5 +528,41 @@ alertsGroup.MapPut("/{id}", async Task<Results<Ok<AlertDto>, NotFound<ErrorRespo
 Atualiza um sensor no sistema na área de risco existente.
 """);
 
+alertsGroup.MapDelete("/{id}", async Task<Results<NoContent, NotFound<ErrorResponse>, BadRequest<ErrorResponse>>> (
+    IRiskAreaRepository riskAreaRepository,
+    IAlertRepository alertRepository,
+    IMapper mapper,
+    string areaId,
+    string id
+) => {
+    if (string.IsNullOrWhiteSpace(areaId) || !Regex.IsMatch(areaId, "^[a-z0-9]{20,32}$")) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "O areaId nao segue um formato de CUID2 valido."));
+    }
+
+    if (string.IsNullOrWhiteSpace(id) || !Regex.IsMatch(id, "^[a-z0-9]{20,32}$")) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "O id nao segue um formato de CUID2 valido."));
+    }
+
+    var riskArea = await riskAreaRepository.FindAsync(areaId);
+
+    if (riskArea is null) {
+        return TypedResults.NotFound(new ErrorResponse(404, $"Área de risco com id {areaId} nao encontrada"));
+    }
+
+    var alert = await alertRepository.FindAsync(id);
+
+    if (alert is null) {
+        return TypedResults.NotFound(new ErrorResponse(404, $"Sensor com id {id} nao encontrado"));
+    }
+
+    await alertRepository.DeleteAsync(alert);
+
+    return TypedResults.NoContent();
+})
+.WithSummary("Deleta um sensor na área de risco especificada.")
+.WithDescription("""
+Deleta um sensor no sistema na área de risco existente.
+""");
+
 
 app.Run();

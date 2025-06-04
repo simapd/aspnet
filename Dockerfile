@@ -11,6 +11,8 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
+RUN dotnet tool install --global dotnet-ef
+
 COPY ["SimapdApi.csproj", "."]
 RUN dotnet restore "./SimapdApi.csproj"
 
@@ -28,9 +30,11 @@ WORKDIR /app
 COPY --from=publish /app/publish .
 
 RUN addgroup -g 1001 -S appuser && \
-    adduser -S appuser -G appuser -u 1001 && \
+    adduser -S appuser -G appuser -u 1001 -h /home/appuser && \
+    dotnet tool install --global dotnet-ef --tool-path /usr/local/bin && \
     chown -R appuser:appuser /app
 
 USER appuser
+ENV PATH="$PATH:/usr/local/bin"
 
-ENTRYPOINT ["dotnet", "SimapdApi.dll"]
+ENTRYPOINT ["sh", "-c", "dotnet ef database update --no-build --verbose && dotnet SimapdApi.dll"]

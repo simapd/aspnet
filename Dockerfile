@@ -28,13 +28,13 @@ FROM base AS final
 WORKDIR /app
 
 COPY --from=publish /app/publish .
+COPY --from=build /root/.dotnet/tools /usr/local/bin
 
 RUN addgroup -g 1001 -S appuser && \
     adduser -S appuser -G appuser -u 1001 -h /home/appuser && \
-    dotnet tool install --global dotnet-ef --tool-path /usr/local/bin && \
     chown -R appuser:appuser /app
 
 USER appuser
 ENV PATH="$PATH:/usr/local/bin"
 
-ENTRYPOINT ["sh", "-c", "dotnet ef database update --no-build --verbose && dotnet SimapdApi.dll"]
+ENTRYPOINT ["sh", "-c", "dotnet-ef database update --no-build --verbose && dotnet SimapdApi.dll"]

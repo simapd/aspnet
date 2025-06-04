@@ -35,6 +35,20 @@ builder.Services.Configure<JsonOptions>(options =>
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<SimapdDb>();
+    try
+    {
+        await context.Database.MigrateAsync();
+        Console.WriteLine("Database migrations applied successfully.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error applying migrations: {ex.Message}");
+        throw;
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {

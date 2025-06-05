@@ -35,6 +35,16 @@ builder.Services.Configure<JsonOptions>(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -51,6 +61,8 @@ using (var scope = app.Services.CreateScope())
         throw;
     }
 }
+
+app.UseCors("AllowAll");
 
 if (app.Environment.IsDevelopment())
 {

@@ -23,10 +23,12 @@ builder.Services.AddDbContext<SimapdDb>(opt
 builder.Services.AddAutoMapper(typeof(RiskAreaProfile));
 builder.Services.AddAutoMapper(typeof(SensorProfile));
 builder.Services.AddAutoMapper(typeof(AlertProfile));
+builder.Services.AddAutoMapper(typeof(MeasurementProfile));
 
 builder.Services.AddScoped<IRiskAreaRepository, RiskAreaRepository>();
 builder.Services.AddScoped<ISensorRepository, SensorRepository>();
 builder.Services.AddScoped<IAlertRepository, AlertRepository>();
+builder.Services.AddScoped<IMeasurementRepository, MeasurementRepository>();
 
 builder.Services.Configure<JsonOptions>(options =>
 {
@@ -1175,5 +1177,63 @@ Response Codes:
 Warning: This operation is irreversible and will permanently delete the alert from the system.
 """);
 
+var measurementGroup = app.MapGroup("/measurements")
+    .WithTags("Measurements")
+    .WithDescription("Endpoints for managing measurements in the environmental monitoring system");
+
+measurementGroup.MapGet("/{id}", async Task<Results<Ok<MeasurementDto>, NotFound<ErrorResponse>, BadRequest<ErrorResponse>>> (
+    IMeasurementRepository measurementRepository,
+    IMapper mapper,
+    string id
+) => {
+    if (string.IsNullOrWhiteSpace(id) || !Regex.IsMatch(id, "^[a-z0-9]{20,32}$")) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "The id does not follow a valid CUID2 format."));
+    }
+
+    var measurement = await measurementRepository.FindAsync(id);
+
+    if (measurement is null) {
+        return TypedResults.NotFound(new ErrorResponse(404, $"Measurement with id {id} not found"));
+    }
+
+    return TypedResults.Ok(mapper.Map<MeasurementDto>(measurement));
+})
+.WithSummary("Get a specific measurement by ID")
+.WithDescription(""" """);
+
+measurementGroup.MapGet("/", async Task<Results<Ok<PagedResponseDto<MeasurementDto>>, BadRequest<ErrorResponse>>> (
+    IMeasurementRepository measurementRepository,
+    IMapper mapper,
+    int pageNumber = 1,
+    int pageSize = 10,
+    string? areaId = null,
+    string? sensorId = null
+) => {
+    if (pageNumber <= 0) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Page number must be greater than zero."));
+    }
+
+    if (pageSize <= 0) {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Page size must be greater than zero."));
+    }
+
+    var measurements = await measurementRepository.ListPagedAsync(pageNumber, pageSize, areaId, sensorId);
+
+    return TypedResults.Ok(mapper.Map<PagedResponseDto<MeasurementDto>>(measurements));
+})
+.WithSummary("Get paginated list of measurements")
+.WithDescription(""" """);
+
+measurementGroup.MapPost("/", async Task<Results<Created<MeasurementDto>, BadRequest<ErrorResponse>>> (
+    IMeasurementRepository measurementRepository,
+    IMapper mapper,
+    MeasurementRequestDto newMeasurement
+) => {
+    var measurement = await measurementRepository.CreateAsync(mapper.Map<Measurement>(newMeasurement));
+
+    return TypedResults.Created($"/measurements/{measurement.Id}",mapper.Map<MeasurementDto>(measurement));
+})
+.WithSummary("Create a new measurement")
+.WithDescription(""" """);
 
 app.Run();

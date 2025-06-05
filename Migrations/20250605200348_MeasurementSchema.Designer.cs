@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Simapd.Models;
@@ -11,9 +12,11 @@ using Simapd.Models;
 namespace SimapdApi.Migrations
 {
     [DbContext(typeof(SimapdDb))]
-    partial class SimapdDbModelSnapshot : ModelSnapshot
+    [Migration("20250605200348_MeasurementSchema")]
+    partial class MeasurementSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -63,10 +66,12 @@ namespace SimapdApi.Migrations
                         .HasColumnType("text")
                         .HasColumnName("id");
 
-                    b.Property<string>("AreaId")
-                        .IsRequired()
-                        .HasColumnType("text")
+                    b.Property<double>("AreaId")
+                        .HasColumnType("double precision")
                         .HasColumnName("area_id");
+
+                    b.Property<string>("AreaId1")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("MeasuredAt")
                         .HasColumnType("timestamp with time zone")
@@ -76,10 +81,12 @@ namespace SimapdApi.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("risk_level");
 
-                    b.Property<string>("SensorId")
-                        .IsRequired()
-                        .HasColumnType("text")
+                    b.Property<double>("SensorId")
+                        .HasColumnType("double precision")
                         .HasColumnName("sensor_id");
+
+                    b.Property<string>("SensorId1")
+                        .HasColumnType("text");
 
                     b.Property<int>("type")
                         .HasColumnType("integer")
@@ -92,9 +99,9 @@ namespace SimapdApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AreaId");
+                    b.HasIndex("AreaId1");
 
-                    b.HasIndex("SensorId");
+                    b.HasIndex("SensorId1");
 
                     b.ToTable("measurements");
                 });
@@ -168,15 +175,11 @@ namespace SimapdApi.Migrations
                 {
                     b.HasOne("Simapd.Models.RiskArea", "Area")
                         .WithMany()
-                        .HasForeignKey("AreaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("AreaId1");
 
                     b.HasOne("Simapd.Models.Sensor", "Sensor")
                         .WithMany()
-                        .HasForeignKey("SensorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SensorId1");
 
                     b.Navigation("Area");
 

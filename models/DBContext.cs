@@ -11,5 +11,6 @@ namespace Simapd.Models
       public DbSet<RiskArea> RiskArea => Set<RiskArea>();
       public DbSet<Sensor> Sensor => Set<Sensor>();
       public DbSet<Alert> Alert => Set<Alert>();
+      public DbSet<Measurement> Measurement => Set<Measurement>();
     }
 }

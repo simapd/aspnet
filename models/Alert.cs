@@ -4,10 +4,11 @@ using Visus.Cuid;
 
 namespace Simapd.Models
 {
-  public enum AlertLevel {
+  public enum RiskLevel {
      LOW,
      MEDIUM,
-     HIGH
+     HIGH,
+     CRITICAL
   }
 
   public enum AlertOrigin {
@@ -27,7 +28,7 @@ namespace Simapd.Models
     public required string Message { get; set; }
 
     [Column("level")]
-    public AlertLevel Level { get; set; }
+    public RiskLevel Level { get; set; }
 
     [Column("origin")]
     public AlertOrigin Origin { get; set; }

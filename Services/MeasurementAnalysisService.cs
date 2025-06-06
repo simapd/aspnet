@@ -101,26 +101,33 @@ namespace Simapd.Services
                 {
                     var soilValue = ExtractSoilMoistureValue(recentSoilMoisture.value);
                     
-                    if (rainMeasurement.RiskLevel >= RiskLevel.MEDIUM && 
-                        recentSoilMoisture.RiskLevel >= RiskLevel.HIGH)
+                    if (rainMeasurement.RiskLevel >= RiskLevel.CRITICAL && 
+                        recentSoilMoisture.RiskLevel >= RiskLevel.CRITICAL)
+                    {
+                        result.ShouldGenerateAlert = true;
+                        result.AlertLevel = RiskLevel.CRITICAL;
+                        result.AlertMessage = $"Combinação crítica de chuva (nível: {rainValue}) com solo saturado (nível: {soilValue}). Risco iminente de deslizamento.";
+                    }
+                    else if (rainMeasurement.RiskLevel >= RiskLevel.MEDIUM && 
+                             recentSoilMoisture.RiskLevel >= RiskLevel.HIGH)
                     {
                         result.ShouldGenerateAlert = true;
                         result.AlertLevel = RiskLevel.HIGH;
-                        result.AlertMessage = $"ALERTA CRÍTICO: Combinação de chuva (nível: {rainValue}) com solo saturado (nível: {soilValue}) detectada. Risco elevado de deslizamento.";
+                        result.AlertMessage = $"Combinação de chuva (nível: {rainValue}) com solo saturado (nível: {soilValue}). Risco elevado de deslizamento.";
                     }
                     else if (rainMeasurement.RiskLevel >= RiskLevel.HIGH)
                     {
                         result.ShouldGenerateAlert = true;
                         result.AlertLevel = RiskLevel.MEDIUM;
-                        result.AlertMessage = $"ALERTA: Chuva intensa (nível: {rainValue}) detectada em área com umidade do solo elevada (nível: {soilValue}).";
+                        result.AlertMessage = $"Chuva intensa (nível: {rainValue}) em área com umidade do solo elevada (nível: {soilValue}).";
                     }
                 }
             }
             else if (rainMeasurement.RiskLevel >= RiskLevel.CRITICAL)
             {
                 result.ShouldGenerateAlert = true;
-                result.AlertLevel = RiskLevel.HIGH;
-                result.AlertMessage = $"ALERTA: Chuva crítica detectada (nível: {rainValue}). Monitorar condições do terreno.";
+                result.AlertLevel = RiskLevel.CRITICAL;
+                result.AlertMessage = $"Chuva crítica detectada (nível: {rainValue}). Monitorar condições do terreno.";
             }
 
             return result;
@@ -152,8 +159,17 @@ namespace Simapd.Services
                 }
 
                 result.ShouldGenerateAlert = true;
-                result.AlertLevel = hasAdverseConditions ? RiskLevel.CRITICAL : RiskLevel.HIGH;
-                result.AlertMessage = $"MOVIMENTO DETECTADO: {movementInfo}.{context} EVACUAR ÁREA IMEDIATAMENTE.";
+                
+                if (movementMeasurement.RiskLevel >= RiskLevel.CRITICAL || hasAdverseConditions)
+                {
+                    result.AlertLevel = RiskLevel.CRITICAL;
+                    result.AlertMessage = $"Movimento detectado: {movementInfo}.{context} Evacuação imediata recomendada.";
+                }
+                else
+                {
+                    result.AlertLevel = RiskLevel.HIGH;
+                    result.AlertMessage = $"Movimento detectado: {movementInfo}. Monitorar área com atenção.";
+                }
             }
 
             return result;
@@ -177,16 +193,25 @@ namespace Simapd.Services
                     {
                         var rainValue = ExtractRainValue(recentRain.value);
                         result.ShouldGenerateAlert = true;
-                        result.AlertLevel = RiskLevel.HIGH;
-                        result.AlertMessage = $"ALERTA: Solo saturado (nível: {soilValue}) com chuva recente (nível: {rainValue}). Risco de instabilidade.";
+                        
+                        if (recentRain.RiskLevel >= RiskLevel.CRITICAL)
+                        {
+                            result.AlertLevel = RiskLevel.CRITICAL;
+                            result.AlertMessage = $"Solo saturado (nível: {soilValue}) com chuva crítica (nível: {rainValue}). Risco iminente de instabilidade.";
+                        }
+                        else
+                        {
+                            result.AlertLevel = RiskLevel.HIGH;
+                            result.AlertMessage = $"Solo saturado (nível: {soilValue}) com chuva recente (nível: {rainValue}). Risco de instabilidade.";
+                        }
                     }
                 }
                 
                 if (!result.ShouldGenerateAlert)
                 {
                     result.ShouldGenerateAlert = true;
-                    result.AlertLevel = RiskLevel.MEDIUM;
-                    result.AlertMessage = $"ALERTA: Solo em estado crítico (nível: {soilValue}). Monitorar evolução.";
+                    result.AlertLevel = RiskLevel.HIGH;
+                    result.AlertMessage = $"Solo em estado crítico (nível: {soilValue}). Monitorar evolução.";
                 }
             }
 

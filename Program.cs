@@ -241,6 +241,31 @@ riskAreaGroup.MapPost("/", async Task<Results<Created<RiskAreaDto>, BadRequest<E
     IMapper mapper,
     RiskAreaRequestDto newRiskArea
 ) => {
+    if (string.IsNullOrWhiteSpace(newRiskArea.Name))
+    {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Validation error: Name is required"));
+    }
+
+    if (newRiskArea.Latitude is null)
+    {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Validation error: Latitude is required"));
+    }
+
+    if (newRiskArea.Longitude is null)
+    {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Validation error: Longitude is required"));
+    }
+
+    if (newRiskArea.Latitude < -90 || newRiskArea.Latitude > 90)
+    {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Validation error: Latitude must be between -90 and 90"));
+    }
+
+    if (newRiskArea.Longitude < -180 || newRiskArea.Longitude > 180)
+    {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Validation error: Longitude must be between -180 and 180"));
+    }
+
     var riskArea = await riskAreaRepository.CreateAsync(mapper.Map<RiskArea>(newRiskArea));
 
     return TypedResults.Created($"/risk-areas/{riskArea.Id}",mapper.Map<RiskAreaDto>(riskArea));
@@ -295,6 +320,21 @@ riskAreaGroup.MapPut("/{id}", async Task<Results<Ok<RiskAreaDto>, NotFound<Error
 ) => {
     if (string.IsNullOrWhiteSpace(id) || !Regex.IsMatch(id, "^[a-z0-9]{20,32}$")) {
         return TypedResults.BadRequest(new ErrorResponse(400, "The id does not follow a valid CUID2 format."));
+    }
+
+    if (updatedRiskArea.Name is not null && string.IsNullOrWhiteSpace(updatedRiskArea.Name))
+    {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Validation error: Name cannot be empty"));
+    }
+
+    if (updatedRiskArea.Latitude is not null && (updatedRiskArea.Latitude < -90 || updatedRiskArea.Latitude > 90))
+    {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Validation error: Latitude must be between -90 and 90"));
+    }
+
+    if (updatedRiskArea.Longitude is not null && (updatedRiskArea.Longitude < -180 || updatedRiskArea.Longitude > 180))
+    {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Validation error: Longitude must be between -180 and 180"));
     }
 
     var riskArea = await riskAreaRepository.FindAsync(id);
@@ -938,6 +978,21 @@ alertsGroup.MapPost("/", async Task<Results<Created<AlertDto>, NotFound<ErrorRes
         return TypedResults.BadRequest(new ErrorResponse(400, "The areaId does not follow a valid CUID2 format."));
     }
 
+    if (string.IsNullOrWhiteSpace(newAlert.Message))
+    {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Validation error: Message is required"));
+    }
+
+    if (newAlert.Level is null)
+    {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Validation error: Level is required"));
+    }
+
+    if (newAlert.Origin is null)
+    {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Validation error: Origin is required"));
+    }
+
     var riskArea = await riskAreaRepository.FindAsync(areaId);
 
     if (riskArea is null) {
@@ -1368,6 +1423,26 @@ measurementGroup.MapPost("/", async Task<Results<Created<MeasurementDto>, BadReq
     IMapper mapper,
     MeasurementRequestDto newMeasurement
 ) => {
+    if (string.IsNullOrWhiteSpace(newMeasurement.SensorId))
+    {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Validation error: SensorId is required"));
+    }
+
+    if (string.IsNullOrWhiteSpace(newMeasurement.AreaId))
+    {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Validation error: AreaId is required"));
+    }
+
+    if (!Regex.IsMatch(newMeasurement.SensorId, "^[a-z0-9]{20,32}$"))
+    {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Validation error: SensorId does not follow a valid CUID2 format"));
+    }
+
+    if (!Regex.IsMatch(newMeasurement.AreaId, "^[a-z0-9]{20,32}$"))
+    {
+        return TypedResults.BadRequest(new ErrorResponse(400, "Validation error: AreaId does not follow a valid CUID2 format"));
+    }
+
     if (newMeasurement.MeasuredAt is null) {
         newMeasurement.MeasuredAt = DateTime.UtcNow;
     }

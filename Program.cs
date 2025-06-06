@@ -1198,7 +1198,61 @@ measurementGroup.MapGet("/{id}", async Task<Results<Ok<MeasurementDto>, NotFound
     return TypedResults.Ok(mapper.Map<MeasurementDto>(measurement));
 })
 .WithSummary("Get a specific measurement by ID")
-.WithDescription(""" """);
+.WithDescription("""
+Retrieves detailed information about a specific environmental measurement using its unique identifier.
+
+Path Parameters:
+- id (string): The unique CUID2 identifier of the measurement (20-32 alphanumeric characters)
+
+Example Request:
+```
+GET /measurements/m1e2a3s4u5r6e7m8e9n0t1
+```
+
+Example Response (200 OK):
+```json
+{
+  "id": "m1e2a3s4u5r6e7m8e9n0t1",
+  "type": "RAIN",
+  "value": 350,
+  "riskLevel": "MEDIUM",
+  "measuredAt": "2024-01-15T15:30:00.000Z",
+  "sensorId": "s1e2n3s4o5r6a7b8c9d0e1",
+  "areaId": "k7u1v2w3x4y5z6a7b8c9d0"
+}
+```
+
+Measurement Type Enum Values:
+- RAIN: Rainfall measurement (0-1023 scale)
+- SOIL_MOISTURE: Soil moisture measurement (0-1023 scale)
+
+Risk Level Enum Values:
+- LOW: Low risk level
+- MEDIUM: Medium risk level requiring attention
+- HIGH: High risk level requiring immediate action
+
+Example Error Response (400 Bad Request):
+```json
+{
+  "statusCode": 400,
+  "message": "The id does not follow a valid CUID2 format."
+}
+```
+
+Example Error Response (404 Not Found):
+```json
+{
+  "statusCode": 404,
+  "message": "Measurement with id invalid-id not found"
+}
+```
+
+Response Codes:
+- 200 OK: Returns the measurement data (MeasurementDto)
+- 400 Bad Request: Invalid CUID2 format for the provided ID
+- 404 Not Found: Measurement with the specified ID does not exist
+- 500 Internal Server Error: Unexpected server error
+""");
 
 measurementGroup.MapGet("/", async Task<Results<Ok<PagedResponseDto<MeasurementDto>>, BadRequest<ErrorResponse>>> (
     IMeasurementRepository measurementRepository,
@@ -1221,7 +1275,92 @@ measurementGroup.MapGet("/", async Task<Results<Ok<PagedResponseDto<MeasurementD
     return TypedResults.Ok(mapper.Map<PagedResponseDto<MeasurementDto>>(measurements));
 })
 .WithSummary("Get paginated list of measurements")
-.WithDescription(""" """);
+.WithDescription("""
+Retrieves a paginated list of environmental measurements with optional filtering by area or sensor.
+
+Query Parameters:
+- pageNumber (optional): Page number to retrieve. Must be greater than zero. Default: 1
+- pageSize (optional): Number of items per page. Must be greater than zero. Default: 10
+- areaId (optional): Filter measurements by a specific risk area ID (CUID2 format)
+- sensorId (optional): Filter measurements by a specific sensor ID (CUID2 format)
+
+Example Request (All measurements):
+```
+GET /measurements?pageNumber=1&pageSize=5
+```
+
+Example Request (Filtered by area):
+```
+GET /measurements?pageNumber=1&pageSize=5&areaId=k7u1v2w3x4y5z6a7b8c9d0
+```
+
+Example Request (Filtered by sensor):
+```
+GET /measurements?pageNumber=1&pageSize=5&sensorId=s1e2n3s4o5r6a7b8c9d0e1
+```
+
+Example Response (200 OK):
+```json
+{
+  "pageNumber": 1,
+  "pageSize": 5,
+  "totalPages": 8,
+  "totalRecords": 40,
+  "data": [
+    {
+      "id": "m1e2a3s4u5r6e7m8e9n0t1",
+      "type": "RAIN",
+      "value": 350,
+      "riskLevel": "MEDIUM",
+      "measuredAt": "2024-01-15T15:30:00.000Z",
+      "sensorId": "s1e2n3s4o5r6a7b8c9d0e1",
+      "areaId": "k7u1v2w3x4y5z6a7b8c9d0"
+    },
+    {
+      "id": "m2f3g4h5i6j7k8l9m0n1o2",
+      "type": "SOIL_MOISTURE",
+      "value": 120,
+      "riskLevel": "LOW",
+      "measuredAt": "2024-01-15T15:25:00.000Z",
+      "sensorId": "s2o3i4l5m6o7i8s9t0u1r2",
+      "areaId": "k7u1v2w3x4y5z6a7b8c9d0"
+    }
+  ]
+}
+```
+
+Measurement Type Enum Values:
+- RAIN: Rainfall measurement (0-1023 scale)
+- SOIL_MOISTURE: Soil moisture measurement (0-1023 scale)
+
+Risk Level Enum Values:
+- LOW: Low risk level
+- MEDIUM: Medium risk level requiring attention
+- HIGH: High risk level requiring immediate action
+
+Example Error Response (400 Bad Request):
+```json
+{
+  "statusCode": 400,
+  "message": "Page number must be greater than zero."
+}
+```
+
+Response Codes:
+- 200 OK: Returns paginated measurement data (PagedResponseDto<MeasurementDto>)
+- 400 Bad Request: Invalid pageNumber or pageSize (less than or equal to zero)
+- 500 Internal Server Error: Unexpected server error
+
+Response Structure:
+The response includes pagination metadata (total count, current page, total pages) and the measurement data.
+Measurements are typically ordered by measurement date, with the most recent measurements first.
+
+Filtering Notes:
+- When using areaId filter, only measurements from sensors in that specific area are returned
+- When using sensorId filter, only measurements from that specific sensor are returned
+- Both filters can be combined for more specific queries
+- Filters use exact CUID2 format matching
+""");
 
 measurementGroup.MapPost("/", async Task<Results<Created<MeasurementDto>, BadRequest<ErrorResponse>>> (
     IMeasurementRepository measurementRepository,

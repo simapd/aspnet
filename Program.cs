@@ -1225,20 +1225,28 @@ measurementGroup.MapGet("/", async Task<Results<Ok<PagedResponseDto<MeasurementD
 
 measurementGroup.MapPost("/", async Task<Results<Created<MeasurementDto>, BadRequest<ErrorResponse>>> (
     IMeasurementRepository measurementRepository,
-    IMeasurementAnalysisService analysisService,
+    IServiceScopeFactory serviceScopeFactory,
     IMapper mapper,
     MeasurementRequestDto newMeasurement
 ) => {
-    // Definir timestamp se não fornecido
     if (newMeasurement.MeasuredAt is null) {
         newMeasurement.MeasuredAt = DateTime.UtcNow;
     }
 
-    // Criar a medição
     var measurement = await measurementRepository.CreateAsync(mapper.Map<Measurement>(newMeasurement));
 
-    // Analisar e gerar alerta se necessário (sem impactar a resposta)
-    _ = Task.Run(async () => await analysisService.AnalyzeAndGenerateAlertAsync(measurement));
+    _ = Task.Run(async () => {
+        using var scope = serviceScopeFactory.CreateScope();
+        var analysisService = scope.ServiceProvider.GetRequiredService<IMeasurementAnalysisService>();
+        try
+        {
+            await analysisService.AnalyzeAndGenerateAlertAsync(measurement);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro na análise automática: {ex.Message}");
+        }
+    });
 
     return TypedResults.Created($"/measurements/{measurement.Id}", mapper.Map<MeasurementDto>(measurement));
 })

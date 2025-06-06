@@ -47,21 +47,6 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<SimapdDb>();
-    try
-    {
-        await context.Database.MigrateAsync();
-        Console.WriteLine("Database migrations applied successfully.");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error applying migrations: {ex.Message}");
-        throw;
-    }
-}
-
 app.UseCors("AllowAll");
 
 if (app.Environment.IsDevelopment())

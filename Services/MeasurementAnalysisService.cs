@@ -38,6 +38,11 @@ namespace Simapd.Services
 
             if (riskAssessment.ShouldGenerateAlert)
             {
+                if (await HasRecentSimilarAlert(newMeasurement.AreaId, riskAssessment.AlertLevel))
+                {
+                    return null;
+                }
+
                 var area = await _riskAreaRepository.FindAsync(newMeasurement.AreaId);
                 
                 var alert = new Alert
@@ -186,6 +191,22 @@ namespace Simapd.Services
             }
 
             return result;
+        }
+
+        private async Task<bool> HasRecentSimilarAlert(string areaId, RiskLevel alertLevel)
+        {
+            var recentAlertWindow = TimeSpan.FromHours(2);
+            var cutoffTime = DateTime.UtcNow.Subtract(recentAlertWindow);
+
+            var recentAlerts = await _alertRepository.ListPagedAsync(areaId, 1, 50);
+            
+            var hasSimilarAlert = recentAlerts.Data.Any(alert => 
+                alert.Origin == AlertOrigin.AUTOMATIC &&
+                alert.EmmitedAt >= cutoffTime &&
+                alert.Level >= alertLevel
+            );
+
+            return hasSimilarAlert;
         }
 
         private int ExtractRainValue(JsonElement jsonValue)

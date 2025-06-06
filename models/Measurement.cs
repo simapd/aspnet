@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 using Visus.Cuid;
 
 namespace Simapd.Models
@@ -21,8 +22,8 @@ namespace Simapd.Models
     [Column("type")]
     public required MeasurementType type { get; set; }
 
-    [Column("value")]
-    public required string value { get; set; }
+    [Column("value", TypeName = "jsonb")]
+    public required JsonElement value { get; set; }
 
     [Column("measured_at")]
     public DateTime MeasuredAt { get; set; }

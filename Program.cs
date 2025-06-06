@@ -4,6 +4,7 @@ using Scalar.AspNetCore;
 using Simapd.Models;
 using Simapd.Dtos;
 using Simapd.Repositories;
+using Simapd.Services;
 using AutoMapper;
 using Simapd.Profiles;
 using System.Text.RegularExpressions;
@@ -29,6 +30,7 @@ builder.Services.AddScoped<IRiskAreaRepository, RiskAreaRepository>();
 builder.Services.AddScoped<ISensorRepository, SensorRepository>();
 builder.Services.AddScoped<IAlertRepository, AlertRepository>();
 builder.Services.AddScoped<IMeasurementRepository, MeasurementRepository>();
+builder.Services.AddScoped<IMeasurementAnalysisService, MeasurementAnalysisService>();
 
 builder.Services.Configure<JsonOptions>(options =>
 {
@@ -1223,14 +1225,49 @@ measurementGroup.MapGet("/", async Task<Results<Ok<PagedResponseDto<MeasurementD
 
 measurementGroup.MapPost("/", async Task<Results<Created<MeasurementDto>, BadRequest<ErrorResponse>>> (
     IMeasurementRepository measurementRepository,
+    IMeasurementAnalysisService analysisService,
     IMapper mapper,
     MeasurementRequestDto newMeasurement
 ) => {
+    // Definir timestamp se não fornecido
+    if (newMeasurement.MeasuredAt is null) {
+        newMeasurement.MeasuredAt = DateTime.UtcNow;
+    }
+
+    // Criar a medição
     var measurement = await measurementRepository.CreateAsync(mapper.Map<Measurement>(newMeasurement));
 
-    return TypedResults.Created($"/measurements/{measurement.Id}",mapper.Map<MeasurementDto>(measurement));
+    // Analisar e gerar alerta se necessário (sem impactar a resposta)
+    _ = Task.Run(async () => await analysisService.AnalyzeAndGenerateAlertAsync(measurement));
+
+    return TypedResults.Created($"/measurements/{measurement.Id}", mapper.Map<MeasurementDto>(measurement));
 })
 .WithSummary("Create a new measurement")
-.WithDescription(""" """);
+.WithDescription("""
+Creates a new environmental measurement. The system automatically analyzes the measurement 
+in background and may generate alerts based on combinations with recent measurements from the same area.
+
+Request Body:
+- MeasurementRequestDto: Contains the measurement data including type, value, risk level, sensor and area
+
+Example Request:
+```json
+{
+  "type": "RAIN",
+  "value": 450,
+  "riskLevel": "MEDIUM",
+  "sensorId": "s1e2n3s4o5r6a7b8c9d0e1",
+  "areaId": "k7u1v2w3x4y5z6a7b8c9d0",
+  "measuredAt": "2024-01-15T15:30:00.000Z"
+}
+```
+
+Note: Measurement values are numeric (0-1023) for RAIN and SOIL_MOISTURE types.
+
+Response Codes:
+- 201 Created: Measurement successfully created
+- 400 Bad Request: Invalid request data or validation errors
+- 500 Internal Server Error: Unexpected server error
+""");
 
 app.Run();

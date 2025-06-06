@@ -14,7 +14,32 @@ RUN dotnet restore SimapdApi.csproj
 
 COPY . .
 
+FROM buildbase AS publish
+RUN dotnet publish SimapdApi.csproj -c Release -o /app/publish
+
 FROM buildbase as migrations
 RUN dotnet tool install --version 9.0.4 --global dotnet-ef
 ENV PATH="$PATH:/root/.dotnet/tools"
 ENTRYPOINT dotnet-ef database update --project . --startup-project .
+
+FROM base AS final
+WORKDIR /home/app
+\
+RUN apt-get update && apt-get install -y curl
+RUN curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 9.0
+ENV PATH="$PATH:/root/.dotnet"
+RUN /root/.dotnet/dotnet tool install --version 9.0.4 --global dotnet-ef
+ENV PATH="$PATH:/root/.dotnet/tools"
+
+COPY --from=publish /app/publish .
+COPY --from=buildbase /source .
+
+RUN echo '#!/bin/bash\n\
+echo "Running database migrations..."\n\
+dotnet-ef database update --no-build || echo "Migration failed, continuing..."\n\
+echo "Starting application..."\n\
+exec dotnet SimapdApi.dll' > /home/app/start.sh
+
+RUN chmod +x /home/app/start.sh
+
+ENTRYPOINT ["/home/app/start.sh"]

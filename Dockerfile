@@ -2,7 +2,7 @@ ARG DOTNET_RUNTIME=mcr.microsoft.com/dotnet/aspnet:9.0
 ARG DOTNET_SDK=mcr.microsoft.com/dotnet/sdk:9.0
 
 FROM ${DOTNET_RUNTIME} AS base
-ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_URLS="http://+:8080"
 WORKDIR /home/app
 EXPOSE 8080
 

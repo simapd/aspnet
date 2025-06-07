@@ -37,8 +37,6 @@ COPY --from=buildbase /source .
 RUN useradd --create-home --uid 1001 appuser && \
     chown -R appuser:appuser /home/app
 
-ENV DB_CONNECTION_STRING ''
-
 RUN echo '#!/bin/bash\n\
 echo "Running database migrations..."\n\
 dotnet-ef database update --no-build || echo "Migration failed, continuing..."\n\

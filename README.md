@@ -170,7 +170,7 @@ graph TB
 - **PostgreSQL Database**
 - **Git**
 
-### Instalação
+### 💻 Execução Local (Desenvolvimento)
 
 1. **Clone o repositório:**
    ```bash
@@ -178,33 +178,66 @@ graph TB
    cd aspnet
    ```
 
-2. **Configure a variável de ambiente:**
+2. **Configure o PostgreSQL:**
    ```bash
-   # Cria um arquivo .env na raiz do projeto
-   echo "DB_CONNECTION_STRING=Host=localhost;Database=simapd;Username=postgres;Password=sua_senha" > .env
+   # Certifique-se de que o PostgreSQL está rodando
+   # Crie o banco de dados:
+   createdb simapd
+   
+   # Ou via psql:
+   psql -U postgres -c "CREATE DATABASE simapd;"
    ```
 
-3. **Restaure as dependências:**
+3. **Configure a variável de ambiente:**
+   ```bash
+   # Opção 1: Variável de ambiente do sistema
+   export DB_CONNECTION_STRING="Host=localhost;Database=simapd;Username=postgres;Password=sua_senha;TrustServerCertificate=true;"
+   
+   # Opção 2: Arquivo .env na raiz do projeto (criar manualmente)
+   echo 'DB_CONNECTION_STRING="Host=localhost;Database=simapd;Username=postgres;Password=sua_senha;TrustServerCertificate=true;"' > .env
+   ```
+
+4. **Instale o Entity Framework CLI (se não tiver):**
+   ```bash
+   dotnet tool install --global dotnet-ef
+   ```
+
+5. **Restaure as dependências:**
    ```bash
    dotnet restore
    ```
 
-4. **Execute as migrations:**
+6. **Execute as migrations:**
    ```bash
    dotnet ef database update
    ```
 
-5. **Execute a API:**
+7. **Execute a API:**
    ```bash
    dotnet run
    ```
 
-6. **Acesse a documentação:**
-   - Scalar UI: `http://localhost:5215/scalar/v1`
-   - OpenAPI: `http://localhost:5215/openapi/v1.json`
-   - Health Check: `http://localhost:5215/health`
+8. **Acesse a aplicação:**
+   - **API Base**: `http://localhost:5215`
+   - **Scalar UI**: `http://localhost:5215/scalar/v1`
+   - **OpenAPI JSON**: `http://localhost:5215/openapi/v1.json`
+   - **Health Check**: `http://localhost:5215/health`
 
 ### Usando Docker
+
+#### Opção 1: Docker Run (Recomendado)
+
+```bash
+# 1. Build da imagem
+docker build -t simapd-api .
+
+# 2. Execute o container passando a connection string
+docker run -p 8080:8080 \
+  -e DB_CONNECTION_STRING="Host=seu-host;Database=simapd;Username=seu-usuario;Password=sua-senha;TrustServerCertificate=true;" \
+  simapd-api
+```
+
+#### Opção 2: Docker Compose
 
 ```bash
 # Build e execute com Docker Compose
@@ -588,9 +621,22 @@ curl -X GET "http://localhost:5215/measurements?areaId=$AREA_ID&pageSize=10"
 ## 🔧 Configuração e Deploy
 
 ### Variáveis de Ambiente
+
+#### Para execução local (.NET)
 ```bash
 # Database
 DB_CONNECTION_STRING=Host=localhost;Database=simapd;Username=postgres;Password=password
+```
+
+#### Para execução com Docker
+```bash
+# A variável deve ser passada no docker run ou docker-compose
+DB_CONNECTION_STRING=Host=seu-host;Database=simapd;Username=seu-usuario;Password=sua-senha;TrustServerCertificate=true;
+
+# Exemplo de uso:
+docker run -p 8080:8080 \
+  -e DB_CONNECTION_STRING="Host=postgres-server;Database=simapd;Username=admin;Password=minhasenha123;TrustServerCertificate=true;" \
+  simapd-api
 ```
 
 ## 🌟 Inovação e Impacto

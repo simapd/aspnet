@@ -34,7 +34,7 @@ echo "Waiting for database..."\n\
 sleep 10\n\
 echo "Running database migrations..."\n\
 export PATH="$PATH:/app/tools"\n\
-/app/tools/dotnet-ef database update --project . --startup-project . || echo "Migration failed, continuing..."\n\
+/app/tools/dotnet-ef database update --connection "$DB_CONNECTION_STRING" --project . --startup-project . || echo "Migration failed, continuing..."\n\
 echo "Starting application..."\n\
 exec dotnet SimapdApi.dll' > /app/start.sh
 
